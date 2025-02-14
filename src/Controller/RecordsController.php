@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 namespace App\Controller;
@@ -11,15 +12,19 @@ namespace App\Controller;
 class RecordsController extends AppController
 {
     /**
-     * Index method
-     *
-     * @return \Cake\Http\Response|null|void Renders view
+     * 記録一覧を表示するアクション
+     * 
+     * @return void
      */
     public function index()
     {
-        $query = $this->Records->find();
-        $records = $this->paginate($query);
+        // RecordsTableから全ての記録を取得
+        $records = $this->Records->find()
+            ->where(['is_deleted' => false])
+            ->orderBy(['onset_date' => 'DESC'])
+            ->all();
 
+        // ビューに記録データをセット
         $this->set(compact('records'));
     }
 }

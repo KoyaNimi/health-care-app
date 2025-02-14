@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 /**
@@ -71,5 +72,22 @@ ConnectionHelper::addTestAliases();
 // load schema from a SQL dump file with
 // use Cake\TestSuite\Fixture\SchemaLoader;
 // (new SchemaLoader())->loadSqlFiles('./tests/schema.sql', 'test');
+
+// 既存の設定を削除してから新しい設定を追加
+ConnectionManager::dropAlias('test');
+// この部分をコメントアウトまたは削除
+/*
+ConnectionManager::setConfig('test', [
+    'driver' => config('Datasources.test.driver'),
+    'host' => 'localhost',
+    //'port' => 'non_standard_port_number',
+    'username' => 'my_app',
+    'password' => 'secret',
+    'database' => 'test_myapp',
+    //'encoding' => 'utf8mb4',
+    'timezone' => 'UTC',
+    'cacheMetadata' => true,
+]);
+*/
 
 (new Migrator())->run();

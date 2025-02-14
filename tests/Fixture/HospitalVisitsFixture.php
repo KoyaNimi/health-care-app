@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 namespace App\Test\Fixture;
@@ -10,6 +11,29 @@ use Cake\TestSuite\Fixture\TestFixture;
  */
 class HospitalVisitsFixture extends TestFixture
 {
+    public array $fields = [
+        'id' => ['type' => 'integer', 'length' => null, 'unsigned' => false, 'null' => false, 'default' => null, 'autoIncrement' => true],
+        'record_id' => ['type' => 'integer', 'length' => null, 'unsigned' => false, 'null' => false],
+        'hospital_name' => ['type' => 'string', 'length' => 255, 'null' => false],
+        'visit_datetime' => ['type' => 'datetime', 'length' => null, 'null' => false],
+        'treatment_details' => ['type' => 'text', 'length' => null, 'null' => true],
+        'impressions' => ['type' => 'text', 'length' => null, 'null' => true],
+        'created_at' => ['type' => 'datetime', 'length' => null, 'null' => false],
+        'modified_at' => ['type' => 'datetime', 'length' => null, 'null' => false],
+        '_constraints' => [
+            'primary' => ['type' => 'primary', 'columns' => ['id']],
+            'hospital_visits_ibfk_1' => [
+                'type' => 'foreign',
+                'columns' => ['record_id'],
+                'references' => ['records', 'id'],
+                'update' => 'CASCADE',
+                'delete' => 'CASCADE',
+            ],
+        ],
+    ];
+
+    public array $records = [];
+
     /**
      * Init method
      *
@@ -17,18 +41,6 @@ class HospitalVisitsFixture extends TestFixture
      */
     public function init(): void
     {
-        $this->records = [
-            [
-                'id' => 1,
-                'record_id' => 1,
-                'hospital_name' => 'Lorem ipsum dolor sit amet',
-                'visit_datetime' => '2025-02-14 05:36:27',
-                'treatment_details' => 'Lorem ipsum dolor sit amet, aliquet feugiat. Convallis morbi fringilla gravida, phasellus feugiat dapibus velit nunc, pulvinar eget sollicitudin venenatis cum nullam, vivamus ut a sed, mollitia lectus. Nulla vestibulum massa neque ut et, id hendrerit sit, feugiat in taciti enim proin nibh, tempor dignissim, rhoncus duis vestibulum nunc mattis convallis.',
-                'impressions' => 'Lorem ipsum dolor sit amet, aliquet feugiat. Convallis morbi fringilla gravida, phasellus feugiat dapibus velit nunc, pulvinar eget sollicitudin venenatis cum nullam, vivamus ut a sed, mollitia lectus. Nulla vestibulum massa neque ut et, id hendrerit sit, feugiat in taciti enim proin nibh, tempor dignissim, rhoncus duis vestibulum nunc mattis convallis.',
-                'created_at' => '2025-02-14 05:36:27',
-                'modified_at' => '2025-02-14 05:36:27',
-            ],
-        ];
         parent::init();
     }
 }

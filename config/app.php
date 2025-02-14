@@ -322,16 +322,18 @@ return [
          * The test connection is used during the test suite.
          */
         'test' => [
-            'className' => Connection::class,
-            'driver' => Mysql::class,
+            'className' => \Cake\Database\Connection::class,
+            'driver' => \Cake\Database\Driver\Mysql::class,
             'persistent' => false,
-            'timezone' => 'UTC',
+            'host' => 'localhost',
+            'username' => 'root',
+            'password' => 'pass',
+            'database' => 'health_care_test',
             'encoding' => 'utf8mb4',
-            'flags' => [],
+            'timezone' => 'UTC',
             'cacheMetadata' => true,
             'quoteIdentifiers' => false,
             'log' => false,
-            //'init' => ['SET GLOBAL innodb_stats_on_metadata = 0'],
         ],
     ],
 
@@ -428,7 +430,7 @@ return [
      *  - `forceEnable` - Force DebugKit to display. Careful with this, it is usually safer to simply whitelist
      *     your local TLDs.
      *  - `ignorePathsPattern` - Regex pattern (including delimiter) to ignore paths.
-     *     DebugKit won’t save data for request URLs that match this regex.
+     *     DebugKit won't save data for request URLs that match this regex.
      *  - `ignoreAuthorization` - Set to true to ignore Cake Authorization plugin for DebugKit requests.
      *     Disabled by default.
      *  - `maxDepth` - Defines how many levels of nested data should be shown in general for debug output.
