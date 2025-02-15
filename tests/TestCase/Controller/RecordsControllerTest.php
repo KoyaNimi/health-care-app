@@ -128,4 +128,66 @@ class RecordsControllerTest extends TestCase
         $this->assertEquals('Old Disease', $lastRecord->disease_name);
         $this->assertEquals('2024-01-01', $lastRecord->onset_date->format('Y-m-d'));
     }
+
+    /**
+     * 記録の詳細表示テスト
+     * 
+     * @return void
+     */
+    public function testView(): void
+    {
+        // 1. テストデータの作成
+        $records = $this->getTableLocator()->get('Records');
+        $record = $records->newEntity([
+            'onset_date' => '2024-02-14',
+            'disease_name' => 'Test Disease',
+            'severity' => 1,
+            'created_at' => '2024-02-14 10:00:00',
+            'modified_at' => '2024-02-14 10:00:00',
+            'is_deleted' => false,
+        ]);
+        $records->save($record);
+
+        // 2. 関連する通院記録の作成
+        $hospitalVisits = $this->getTableLocator()->get('HospitalVisits');
+        $visit = $hospitalVisits->newEntity([
+            'record_id' => $record->id,
+            'hospital_name' => 'Test Hospital',
+            'visit_datetime' => '2024-02-14 15:00:00',
+            'created_at' => '2024-02-14 10:00:00',
+            'modified_at' => '2024-02-14 10:00:00',
+        ]);
+        $hospitalVisits->save($visit);
+
+        // 3. /records/view/1 へのGETリクエストを実行
+        $this->get('/records/view/' . $record->id);
+
+        // 4. レスポンスのテスト
+        $this->assertResponseSuccess();
+
+        // 5. ビュー変数のテスト
+        $viewRecord = $this->viewVariable('record');
+        $this->assertNotEmpty($viewRecord);
+        $this->assertEquals('Test Disease', $viewRecord->disease_name);
+
+        // 6. 関連する通院記録のテスト
+        $this->assertNotEmpty($viewRecord->hospital_visits);
+        $this->assertEquals(1, count($viewRecord->hospital_visits));
+        $this->assertEquals('Test Hospital', $viewRecord->hospital_visits[0]->hospital_name);
+    }
+
+    /**
+     * 存在しない記録のIDでviewアクションを実行した場合のテスト
+     * 
+     * @return void
+     */
+    public function testViewNotFound(): void
+    {
+        // 1. 存在しないIDでGETリクエストを実行
+        $this->get('/records/view/999999');
+
+        // 2. レスポンスのテスト
+        $this->assertResponseError();  // 4xx系エラー
+        $this->assertResponseCode(404);  // Not Found
+    }
 }
