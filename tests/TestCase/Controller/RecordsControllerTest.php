@@ -272,4 +272,83 @@ class RecordsControllerTest extends TestCase
         $record = $this->viewVariable('record');
         $this->assertGreaterThan(0, $record->getErrors());
     }
+
+    /**
+     * GETリクエストでeditアクションを実行した場合のテスト（フォーム表示）
+     */
+    public function testEditGet(): void
+    {
+        // テストデータの作成
+        $records = $this->getTableLocator()->get('Records');
+        $record = $records->newEntity([
+            'onset_date' => '2024-02-14',
+            'disease_name' => 'Test Disease',
+            'severity' => 1,
+            'created_at' => '2024-02-14 10:00:00',
+            'modified_at' => '2024-02-14 10:00:00',
+            'is_deleted' => false,
+        ]);
+        $records->save($record);
+
+        // GETリクエストを実行
+        $this->get('/records/edit/' . $record->id);
+
+        // レスポンスのテスト
+        $this->assertResponseSuccess();
+
+        // ビュー変数のテスト
+        $editRecord = $this->viewVariable('record');
+        $this->assertNotEmpty($editRecord);
+        $this->assertEquals($record->id, $editRecord->id);
+        $this->assertEquals('Test Disease', $editRecord->disease_name);
+    }
+
+    /**
+     * 正常なPOSTリクエストでeditアクションを実行した場合のテスト
+     */
+    public function testEditPost(): void
+    {
+        // テストデータの作成
+        $records = $this->getTableLocator()->get('Records');
+        $record = $records->newEntity([
+            'onset_date' => '2024-02-14',
+            'disease_name' => 'Original Disease',
+            'severity' => 1,
+            'created_at' => '2024-02-14 10:00:00',
+            'modified_at' => '2024-02-14 10:00:00',
+            'is_deleted' => false,
+        ]);
+        $records->save($record);
+
+        // 更新データ
+        $data = [
+            'disease_name' => 'Updated Disease',
+            'severity' => 2,
+        ];
+
+        // POSTリクエストを実行
+        $this->post('/records/edit/' . $record->id, $data);
+
+        // リダイレクトのテスト
+        $this->assertResponseSuccess();
+        $this->assertRedirect(['controller' => 'Records', 'action' => 'index']);
+
+        // フラッシュメッセージのテスト
+        $this->assertFlashMessage('記録を更新しました。');
+
+        // データベースの更新を確認
+        $updated = $records->get($record->id);
+        $this->assertEquals('Updated Disease', $updated->disease_name);
+        $this->assertEquals(2, $updated->severity);
+    }
+
+    /**
+     * 存在しない記録のIDでeditアクションを実行した場合のテスト
+     */
+    public function testEditGetNotFound(): void
+    {
+        $this->get('/records/edit/99999');
+        $this->assertResponseError();
+        $this->assertResponseCode(404);
+    }
 }

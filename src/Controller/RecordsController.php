@@ -72,4 +72,26 @@ class RecordsController extends AppController
         // ビュー変数として設定
         $this->set(compact('record'));
     }
+
+    /**
+     * 記録の編集
+     *
+     * @param string $id 記録ID
+     * @return \Cake\Http\Response|null リダイレクト先
+     */
+    public function edit(string $id)
+    {
+        $record = $this->Records->get($id, contain: ['HospitalVisits']);
+
+        if ($this->request->is('post')) {
+            $record = $this->Records->patchEntity($record, $this->request->getData());
+            if ($this->Records->save($record)) {
+                $this->Flash->success('記録を更新しました。');
+                return $this->redirect(['action' => 'index']);
+            }
+            $this->Flash->error('記録の更新に失敗しました。入力内容を確認してください。');
+        }
+
+        $this->set(compact('record'));
+    }
 }
