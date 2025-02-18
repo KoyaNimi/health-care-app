@@ -24,6 +24,16 @@ class RecordsControllerTest extends TestCase
     ];
 
     /**
+     * テストの前処理
+     */
+    public function setUp(): void
+    {
+        parent::setUp();
+        $this->enableCsrfToken();
+        $this->enableSecurityToken();
+    }
+
+    /**
      * 記録が0件の場合のindexアクションのテスト
      * 
      * @return void
@@ -189,5 +199,77 @@ class RecordsControllerTest extends TestCase
         // 2. レスポンスのテスト
         $this->assertResponseError();  // 4xx系エラー
         $this->assertResponseCode(404);  // Not Found
+    }
+
+    /**
+     * GETリクエストでaddアクションを実行した場合のテスト（フォーム表示）
+     */
+    public function testAddGet(): void
+    {
+        // GETリクエストを実行
+        $this->get('/records/add');
+
+        // レスポンスのテスト
+        $this->assertResponseSuccess();
+        $this->assertResponseCode(200);
+
+        // ビュー変数のテスト
+        $this->assertInstanceOf('App\Model\Entity\Record', $this->viewVariable('record'));
+    }
+
+    /**
+     * 正常なPOSTリクエストでaddアクションを実行した場合のテスト
+     */
+    public function testAddPost(): void
+    {
+        $data = [
+            'onset_date' => '2024-02-14',
+            'disease_name' => 'Test Disease',
+            'severity' => 1,
+            'complications' => 'Test Complications',
+            'medications' => 'Test Medications',
+        ];
+
+        // POSTリクエストを実行
+        $this->post('/records/add', $data);
+
+        // リダイレクトのテスト
+        $this->assertResponseSuccess();
+        $this->assertRedirect(['controller' => 'Records', 'action' => 'index']);
+
+        // フラッシュメッセージのテスト
+        $this->assertFlashMessage('記録を保存しました。');
+
+        // データベースに保存されたことを確認
+        $records = $this->getTableLocator()->get('Records');
+        $query = $records->find()->where(['disease_name' => 'Test Disease']);
+        $result = $query->first();
+
+        $this->assertNotEmpty($result);
+        $this->assertEquals('Test Disease', $result->disease_name);
+        $this->assertEquals('2024-02-14', $result->onset_date->format('Y-m-d'));
+    }
+
+    /**
+     * バリデーションエラーとなるPOSTリクエストでaddアクションを実行した場合のテスト
+     */
+    public function testAddPostValidationError(): void
+    {
+        $data = [
+            'onset_date' => '',  // 必須項目を空に
+            'disease_name' => '', // 必須項目を空に
+            'severity' => 'invalid',  // 不正な値
+        ];
+
+        // POSTリクエストを実行
+        $this->post('/records/add', $data);
+
+        // レスポンスのテスト
+        $this->assertResponseSuccess();
+        $this->assertResponseCode(200);  // バリデーションエラー時は200 OK
+
+        // エラーの検証
+        $record = $this->viewVariable('record');
+        $this->assertGreaterThan(0, $record->getErrors());
     }
 }

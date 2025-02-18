@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 namespace App\Model\Table;
@@ -45,6 +46,16 @@ class RecordsTable extends Table
 
         $this->hasMany('HospitalVisits', [
             'foreignKey' => 'record_id',
+        ]);
+
+        // created_atとmodified_atを自動設定
+        $this->addBehavior('Timestamp', [
+            'events' => [
+                'Model.beforeSave' => [
+                    'created_at' => 'new',    // 新規作成時のみ
+                    'modified_at' => 'always'  // 常に更新
+                ]
+            ]
         ]);
     }
 
