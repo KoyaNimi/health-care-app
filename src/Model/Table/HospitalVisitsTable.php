@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 namespace App\Model\Table;
@@ -7,6 +8,7 @@ use Cake\ORM\Query\SelectQuery;
 use Cake\ORM\RulesChecker;
 use Cake\ORM\Table;
 use Cake\Validation\Validator;
+use Cake\ORM\TableSchemaInterface;
 
 /**
  * HospitalVisits Model
@@ -47,6 +49,15 @@ class HospitalVisitsTable extends Table
             'foreignKey' => 'record_id',
             'joinType' => 'INNER',
         ]);
+
+        // アクセス可能なフィールドの設定
+        $this->setEntityClass('HospitalVisit');
+    }
+
+    protected function _initializeSchema(TableSchemaInterface $schema): TableSchemaInterface
+    {
+        $schema->setColumnType('is_deleted', 'boolean');
+        return $schema;
     }
 
     /**

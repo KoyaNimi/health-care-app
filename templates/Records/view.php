@@ -26,6 +26,19 @@
         </table>
     </div>
 
+    <!-- 操作ボタン -->
+    <div class="actions">
+        <?= $this->Html->link(__('編集'), ['action' => 'edit', $record->id], ['class' => 'button']) ?>
+        <?= $this->Form->postLink(
+            __('削除'),
+            ['action' => 'delete', $record->id],
+            [
+                'confirm' => __('本当にこの記録を削除しますか？'),
+                'class' => 'button delete'
+            ]
+        ) ?>
+    </div>
+
     <div class="related">
         <h4><?= __('通院記録') ?></h4>
         <?php if (!empty($record->hospital_visits)): ?>

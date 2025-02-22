@@ -188,17 +188,36 @@ class RecordsControllerTest extends TestCase
 
     /**
      * 存在しない記録のIDでviewアクションを実行した場合のテスト
-     * 
-     * @return void
      */
     public function testViewNotFound(): void
     {
-        // 1. 存在しないIDでGETリクエストを実行
-        $this->get('/records/view/999999');
+        $this->get('/records/view/99999');
+        $this->assertResponseError();
+        $this->assertResponseCode(404);
+    }
 
-        // 2. レスポンスのテスト
-        $this->assertResponseError();  // 4xx系エラー
-        $this->assertResponseCode(404);  // Not Found
+    /**
+     * 削除済みの記録の詳細画面にアクセスした場合のテスト
+     */
+    public function testViewDeletedRecord(): void
+    {
+        // 削除済みの記録を作成
+        $records = $this->getTableLocator()->get('Records');
+        $record = $records->newEntity([
+            'onset_date' => '2024-02-14',
+            'disease_name' => 'Deleted Disease',
+            'severity' => 1,
+            'created_at' => '2024-02-14 10:00:00',
+            'modified_at' => '2024-02-14 10:00:00',
+            'is_deleted' => true,  // 削除済み
+        ]);
+        $records->save($record);
+
+        // 削除済みの記録にアクセス
+        $this->get('/records/view/' . $record->id);
+
+        // 404エラーが返されることを確認
+        $this->assertResponseCode(404);
     }
 
     /**
@@ -350,5 +369,191 @@ class RecordsControllerTest extends TestCase
         $this->get('/records/edit/99999');
         $this->assertResponseError();
         $this->assertResponseCode(404);
+    }
+
+    /**
+     * 正常なDELETEリクエストでdeleteアクションを実行した場合のテスト
+     */
+    public function testDelete(): void
+    {
+        // テストデータの作成
+        $records = $this->getTableLocator()->get('Records');
+        $record = $records->newEntity([
+            'onset_date' => '2024-02-14',
+            'disease_name' => 'Test Disease',
+            'severity' => 1,
+            'created_at' => '2024-02-14 10:00:00',
+            'modified_at' => '2024-02-14 10:00:00',
+            'is_deleted' => false,
+        ]);
+        $records->save($record);
+
+        // DELETEリクエストを実行
+        $this->delete('/records/delete/' . $record->id);
+
+        // リダイレクトのテスト
+        $this->assertResponseSuccess();
+        $this->assertRedirect(['controller' => 'Records', 'action' => 'index']);
+
+        // フラッシュメッセージのテスト
+        $this->assertFlashMessage('記録を削除しました。');
+
+        // 論理削除の確認
+        $deleted = $records->get($record->id);
+        $this->assertTrue($deleted->is_deleted);
+    }
+
+    /**
+     * 存在しない記録のIDでdeleteアクションを実行した場合のテスト
+     */
+    public function testDeleteNotFound(): void
+    {
+        $this->delete('/records/delete/99999');
+        $this->assertResponseError();
+        $this->assertResponseCode(404);
+    }
+
+    /**
+     * 通院記録を含む記録を削除した場合のテスト
+     */
+    public function testDeleteWithHospitalVisits(): void
+    {
+        // テストデータの作成（症状の記録）
+        $records = $this->getTableLocator()->get('Records');
+        $record = $records->newEntity([
+            'onset_date' => '2024-02-14',
+            'disease_name' => 'Test Disease',
+            'severity' => 1,
+            'created_at' => '2024-02-14 10:00:00',
+            'modified_at' => '2024-02-14 10:00:00',
+            'is_deleted' => false,
+        ]);
+        $records->save($record);
+
+        // 関連する通院記録の作成
+        $hospitalVisits = $this->getTableLocator()->get('HospitalVisits');
+        $visit = $hospitalVisits->newEntity([
+            'record_id' => $record->id,
+            'hospital_name' => 'Test Hospital',
+            'visit_datetime' => '2024-02-14 15:00:00',
+            'created_at' => '2024-02-14 10:00:00',
+            'modified_at' => '2024-02-14 10:00:00',
+            'is_deleted' => false,
+        ]);
+
+        // 保存前のデータを確認
+        debug('保存前の通院記録:');
+        debug($visit->toArray());
+
+        $result = $hospitalVisits->save($visit);
+
+        // 保存後のデータを確認
+        debug('保存後の通院記録:');
+        debug($result ? $result->toArray() : 'Save failed');
+
+        // DELETEリクエストを実行
+        $this->delete('/records/delete/' . $record->id);
+
+        // 削除後のデータを確認
+        $deletedVisit = $hospitalVisits->get($visit->id);
+        debug('削除後の通院記録:');
+        debug($deletedVisit->toArray());
+
+        // アサーション
+        $this->assertTrue($deletedVisit->is_deleted, '通院記録が論理削除されていません');
+    }
+
+    /**
+     * 論理削除されたレコードが一覧に表示されないことをテストする
+     */
+    public function testIndexHidesDeletedRecords(): void
+    {
+        // テストデータの作成（通常の記録）
+        $records = $this->getTableLocator()->get('Records');
+        $activeRecord = $records->newEntity([
+            'onset_date' => '2024-02-14',
+            'disease_name' => 'Active Disease',
+            'severity' => 1,
+            'created_at' => '2024-02-14 10:00:00',
+            'modified_at' => '2024-02-14 10:00:00',
+            'is_deleted' => false,
+        ]);
+        $records->save($activeRecord);
+
+        // 論理削除済みの記録を作成
+        $deletedRecord = $records->newEntity([
+            'onset_date' => '2024-02-13',
+            'disease_name' => 'Deleted Disease',
+            'severity' => 2,
+            'created_at' => '2024-02-13 10:00:00',
+            'modified_at' => '2024-02-13 10:00:00',
+            'is_deleted' => true,
+        ]);
+        $records->save($deletedRecord);
+
+        // 一覧を取得
+        $this->get('/records');
+
+        // レスポンスの確認
+        $this->assertResponseOk();
+
+        // アクティブな記録は表示される
+        $this->assertResponseContains('Active Disease');
+
+        // 削除済みの記録は表示されない
+        $this->assertResponseNotContains('Deleted Disease');
+    }
+
+    /**
+     * 削除済みの通院記録が詳細画面に表示されないことをテストする
+     */
+    public function testViewHidesDeletedHospitalVisits(): void
+    {
+        // 症状の記録を作成
+        $records = $this->getTableLocator()->get('Records');
+        $record = $records->newEntity([
+            'onset_date' => '2024-02-14',
+            'disease_name' => 'Test Disease',
+            'severity' => 1,
+            'created_at' => '2024-02-14 10:00:00',
+            'modified_at' => '2024-02-14 10:00:00',
+            'is_deleted' => false,
+        ]);
+        $records->save($record);
+
+        // 通常の通院記録を作成
+        $hospitalVisits = $this->getTableLocator()->get('HospitalVisits');
+        $activeVisit = $hospitalVisits->newEntity([
+            'record_id' => $record->id,
+            'hospital_name' => 'Active Hospital',
+            'visit_datetime' => '2024-02-14 15:00:00',
+            'created_at' => '2024-02-14 10:00:00',
+            'modified_at' => '2024-02-14 10:00:00',
+            'is_deleted' => false,
+        ]);
+        $hospitalVisits->save($activeVisit);
+
+        // 削除済みの通院記録を作成
+        $deletedVisit = $hospitalVisits->newEntity([
+            'record_id' => $record->id,
+            'hospital_name' => 'Deleted Hospital',
+            'visit_datetime' => '2024-02-13 15:00:00',
+            'created_at' => '2024-02-13 10:00:00',
+            'modified_at' => '2024-02-13 10:00:00',
+            'is_deleted' => true,
+        ]);
+        $hospitalVisits->save($deletedVisit);
+
+        // 詳細画面を表示
+        $this->get('/records/view/' . $record->id);
+
+        // レスポンスの確認
+        $this->assertResponseOk();
+
+        // 通常の通院記録は表示される
+        $this->assertResponseContains('Active Hospital');
+
+        // 削除済みの通院記録は表示されない
+        $this->assertResponseNotContains('Deleted Hospital');
     }
 }

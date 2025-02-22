@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Controller;
 
 use Cake\I18n\FrozenTime;
+use Cake\Http\Exception\NotFoundException;
 
 /**
  * Records Controller
@@ -20,7 +21,7 @@ class RecordsController extends AppController
      */
     public function index()
     {
-        // RecordsTableから全ての記録を取得
+        // 削除されていないレコードのみ取得
         $records = $this->Records->find()
             ->where(['is_deleted' => false])
             ->orderBy(['onset_date' => 'DESC'])
@@ -39,8 +40,14 @@ class RecordsController extends AppController
      */
     public function view($id = null)
     {
-        // 記録を取得（関連する通院記録も含める）
-        $record = $this->Records->get($id, contain: 'HospitalVisits');
+        $record = $this->Records->get($id, contain: [
+            'HospitalVisits' => fn ($q) => $q->where(['HospitalVisits.is_deleted' => false])
+        ]);
+
+        // 削除済みの記録へのアクセスは404エラー
+        if ($record->is_deleted) {
+            throw new NotFoundException(__('記録が見つかりません。'));
+        }
 
         $this->set(compact('record'));
     }
@@ -93,5 +100,50 @@ class RecordsController extends AppController
         }
 
         $this->set(compact('record'));
+    }
+
+    /**
+     * 記録の削除（論理削除）
+     *
+     * @param string $id 記録ID
+     * @return \Cake\Http\Response|null リダイレクト先
+     */
+    public function delete(string $id)
+    {
+        $connection = $this->Records->getConnection();
+        $result = $connection->transactional(function () use ($id) {
+            // 症状の記録を取得（関連データも含める）
+            $record = $this->Records->get($id, contain: [
+                'HospitalVisits' => function ($q) {
+                    return $q->select(['id', 'record_id', 'is_deleted']);  // 必要なフィールドを明示的に指定
+                }
+            ]);
+
+            // 症状の記録を論理削除
+            $record->is_deleted = true;
+            if (!$this->Records->save($record)) {
+                return false;
+            }
+
+            // 関連する通院記録を論理削除
+            if (!empty($record->hospital_visits)) {
+                foreach ($record->hospital_visits as $visit) {
+                    $visit->is_deleted = true;
+                    if (!$this->Records->HospitalVisits->save($visit)) {
+                        return false;
+                    }
+                }
+            }
+
+            return true;
+        });
+
+        if ($result) {
+            $this->Flash->success('記録を削除しました。');
+        } else {
+            $this->Flash->error('記録の削除に失敗しました。');
+        }
+
+        return $this->redirect(['action' => 'index']);
     }
 }

@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 namespace App\Model\Entity;
@@ -38,6 +39,7 @@ class HospitalVisit extends Entity
         'impressions' => true,
         'created_at' => true,
         'modified_at' => true,
+        'is_deleted' => true,
         'record' => true,
     ];
 }

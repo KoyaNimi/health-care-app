@@ -34,6 +34,10 @@ class CreateHospitalVisits extends AbstractMigration
                 'default' => 'CURRENT_TIMESTAMP',
                 'update' => 'CURRENT_TIMESTAMP',
             ])
+            ->addColumn('is_deleted', 'boolean', [
+                'null' => false,
+                'default' => false,
+            ])
             ->addForeignKey('record_id', 'records', 'id', [
                 'delete' => 'CASCADE',
                 'update' => 'CASCADE',
