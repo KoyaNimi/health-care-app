@@ -6,7 +6,19 @@
  */
 ?>
 <div class="records index content">
-    <h3><?= __('Records') ?></h3>
+    <h3>
+        <?= __('症状記録') ?>
+        <?= $this->Html->link(
+            __('新規作成'),
+            ['action' => 'add'],
+            ['class' => 'button float-right']
+        ) ?>
+        <?= $this->Html->link(
+            __('カレンダー表示'),
+            ['action' => 'calendar'],
+            ['class' => 'button float-right', 'style' => 'margin-right: 10px;']
+        ) ?>
+    </h3>
     <div class="table-responsive">
         <table>
             <thead>
