@@ -556,4 +556,23 @@ class RecordsControllerTest extends TestCase
         // 削除済みの通院記録は表示されない
         $this->assertResponseNotContains('Deleted Hospital');
     }
+
+    /**
+     * カレンダー表示のテスト
+     */
+    public function testCalendar(): void
+    {
+        // カレンダーページにアクセス
+        $this->get('/records/calendar');
+
+        // レスポンスの確認
+        $this->assertResponseOk();
+
+        // カレンダーの要素が存在することを確認
+        $this->assertResponseContains('id="calendar"');
+
+        // ナビゲーションボタンが存在することを確認
+        $this->assertResponseContains('前月');
+        $this->assertResponseContains('翌月');
+    }
 }

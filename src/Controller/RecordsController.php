@@ -41,7 +41,7 @@ class RecordsController extends AppController
     public function view($id = null)
     {
         $record = $this->Records->get($id, contain: [
-            'HospitalVisits' => fn ($q) => $q->where(['HospitalVisits.is_deleted' => false])
+            'HospitalVisits' => fn($q) => $q->where(['HospitalVisits.is_deleted' => false])
         ]);
 
         // 削除済みの記録へのアクセスは404エラー
@@ -145,5 +145,35 @@ class RecordsController extends AppController
         }
 
         return $this->redirect(['action' => 'index']);
+    }
+
+    /**
+     * カレンダー表示
+     */
+    public function calendar()
+    {
+        // 削除されていないレコードのみ取得
+        $records = $this->Records->find()
+            ->where(['Records.is_deleted' => false])
+            ->contain(['HospitalVisits' => function ($q) {
+                return $q->where(['HospitalVisits.is_deleted' => false]);
+            }])
+            ->order(['Records.onset_date' => 'DESC'])
+            ->all();
+
+        // 年の選択肢を準備
+        $currentYear = (int)date('Y');
+        $years = range($currentYear - 2, $currentYear + 2);
+        $yearOptions = array_combine($years, array_map(function ($year) {
+            return $year . '年';
+        }, $years));
+
+        // 月の選択肢を準備
+        $months = range(1, 12);
+        $monthOptions = array_combine($months, array_map(function ($month) {
+            return $month . '月';
+        }, $months));
+
+        $this->set(compact('records', 'yearOptions', 'monthOptions'));
     }
 }
